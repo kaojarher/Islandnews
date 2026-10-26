@@ -39,11 +39,20 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 @media (max-height:480px) and (orientation:landscape){.brand small,.cred{display:none}.panel{width:min(340px,46%);bottom:calc(52px + env(safe-area-inset-bottom,0px))}.nav button{padding:5px 9px;font-size:12px}.zoom{top:calc(56px + env(safe-area-inset-top,0px))}}
 html{touch-action:manipulation}
 .ci{display:block;width:100%;margin:6px 0;font:inherit;font-size:13px;background:var(--bg1);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:7px 9px}.row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.panel .tb{margin:4px 6px 4px 0;padding:4px 10px}
+.dp{position:fixed;left:14px;bottom:calc(64px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:4px;z-index:5;user-select:none;-webkit-user-select:none;touch-action:none}.dp button{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:12px;box-shadow:0 3px 0 var(--shadow);cursor:pointer;touch-action:none}
+#hud{position:fixed;right:14px;top:calc(10px + env(safe-area-inset-top,0px));z-index:3;background:var(--card);border:2px solid var(--line);border-radius:14px;box-shadow:0 3px 0 var(--shadow);padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;max-width:min(300px,55vw)}
+.xpb{height:7px;background:var(--line);border-radius:99px;overflow:hidden;margin:5px 0}.xpi{height:100%;width:0;background:var(--acc);border-radius:99px;transition:width .3s}
+#toast{display:none;position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9;background:var(--acc);color:#fff;font-weight:700;font-size:13.5px;border-radius:999px;padding:8px 16px;box-shadow:0 4px 0 var(--shadow);max-width:90vw;text-align:center}
+#talk{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:6;font:inherit;font-size:14px;font-weight:700;color:#fff;background:var(--acc);border:2px solid var(--acc);border-radius:999px;padding:8px 16px;box-shadow:0 4px 0 var(--shadow);cursor:pointer}
+#dlg{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));width:min(520px,calc(100% - 28px));z-index:7;background:var(--card);color:var(--ink);border:2px solid var(--acc);border-radius:18px;box-shadow:0 6px 0 var(--shadow);padding:12px 14px}.dtx{margin:6px 0 2px;font-size:14.5px;line-height:1.55}
+#role{position:fixed;inset:0;z-index:10;background:rgba(40,25,15,.5);display:flex;align-items:center;justify-content:center;padding:14px}.rc{background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:22px;box-shadow:0 6px 0 var(--shadow);padding:16px;width:min(460px,100%);max-height:90vh;overflow:auto}.rc h2{margin:0 0 4px}.rc p{margin:0 0 10px;color:var(--mute);font-size:13px}
+.rb{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--bg1);border:2px solid var(--line);border-radius:14px;padding:9px 12px;margin:6px 0;cursor:pointer}.rb:hover{border-color:var(--acc)}.rb small{display:block;color:var(--mute);margin-top:2px}
+@media (max-width:640px){#hud{top:calc(54px + env(safe-area-inset-top,0px));font-size:12px}.dp{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px)}}
 </style>
 </head>
 <body>
 <div class="brand"><b>📰 新聞島</b><small>點一座島，登島讀新聞・拖曳旋轉</small></div>
-<div class="zoom"><button id="zi" aria-label="拉近">＋</button><button id="zo" aria-label="拉遠">－</button><button id="rf" aria-label="重新抓取 RSS">⟳</button></div>
+<div class="zoom"><button id="zi" aria-label="拉近">＋</button><button id="zo" aria-label="拉遠">－</button><button id="rf" aria-label="重新抓取 RSS">⟳</button><button id="rl" aria-label="角色扮演">🎭</button><button id="dp" aria-label="顯示或隱藏方向鍵">🎮</button></div>
 <div class="panel" id="panel" aria-live="polite"></div>
 <div class="nav" id="nav"></div>
 <div class="cred">角色：Universal LPC Spritesheet Character Generator（CC-BY-SA 3.0／GPL 3.0）素材改色，署名見 CREDITS.csv</div>
@@ -88,7 +97,7 @@ const D=[
  {t:'菲律賓在台北設立最大OFW服務中心',s:'中央社 Focus Taiwan',d:'2026-10-11',q:'菲律賓 OFW 服務中心 台北'}]}
 ];
 let read={};try{read=JSON.parse(localStorage.getItem('lp-read')||'{}')}catch(e){}
-const save=()=>{try{localStorage.setItem('lp-read',JSON.stringify(read))}catch(e){}};
+const save=()=>{try{localStorage.setItem('lp-read',JSON.stringify(read))}catch(e){}if(typeof rpSync==='function')rpSync()};
 
 // three setup
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
@@ -232,7 +241,7 @@ const prog=(i)=>D[i].items.filter((_,k)=>read[i+':'+k]).length+'/'+D[i].items.le
 function labels(){islands.forEach((s,i)=>{s.el.textContent=D[i].e+' '+D[i].n+'  '+prog(i)});[...nav.children].forEach((b,i)=>{if(i<D.length)b.textContent=D[i].e+' '+D[i].n})}
 D.forEach((o,i)=>{const b=document.createElement('button');b.onclick=()=>go(i);nav.appendChild(b)});
 let sel=-1;
-function go(i){cs=-1;sel=i;if(window._room)_room.presence({isl:i});const p=islands[i].g.userData.base;tgt.set(p.x,.4,p.z);tR=26*fit;[...nav.children].forEach((b,k)=>b.classList.toggle('on',k===i));draw(i)}
+function go(i){cs=-1;sel=i;if(typeof rpGo==='function')rpGo(i);if(window._room)_room.presence({isl:i});const p=islands[i].g.userData.base;tgt.set(p.x,.4,p.z);tR=26*fit;[...nav.children].forEach((b,k)=>b.classList.toggle('on',k===i));draw(i)}
 let feedMsg='正在抓取 RSS…';
 const CJK=/[\u3400-\u9fff]/;
 async function tr(txt){const s=window.claude&&await claude.use('sample');if(s){try{return (await s('請把下列內容翻成繁體中文（台灣用語），只輸出譯文：\n'+txt)).text.trim()}catch(e){}}
@@ -290,7 +299,7 @@ function openCh(ci){cs=ci;sel=-1;if(window._room)_room.presence({isl:-1});tgt.se
 function closeCh(){cs=-1;panel.classList.remove('open');[...nav.children].forEach(b=>b.classList.remove('on'))}
 function head(t,sub){panel.innerHTML='';const x=document.createElement('button');x.className='close';x.textContent='✕';x.setAttribute('aria-label','關閉');x.onclick=closeCh;const h=document.createElement('h2');h.textContent=t;const p=document.createElement('p');p.textContent=sub;panel.append(x,h,p)}
 function mkEl(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
-function drawCh(keep){if(cs===-2)return drawMgr(keep);const c=CH[cs];if(!c){closeCh();return}const st=panel.scrollTop;
+function drawCh(keep){if(cs===-2)return drawMgr(keep);if(cs===-3)return drawRP(keep);const c=CH[cs];if(!c){closeCh();return}const st=panel.scrollTop;
  head(c.e+' '+c.n,c.u);panel.append(mkEl('div','warn',c.msg||''));
  const mb=mkEl('button','tb','管理頻道');mb.onclick=()=>openCh(-2);panel.append(mb);
  c.items.forEach((it,k)=>{const key='c:'+(it.u||c.u+'#'+k),r=mkEl('div','it'+(read[key]?' read':''));
@@ -337,6 +346,114 @@ async function refresh(){if(busy)return;busy=true;let ok=0;viaJson=0;refreshCust
  else{try{const j=await (await fetch('news.json',{cache:'no-store'})).json();for(const k in j.islands)if(D[k]&&j.islands[k].length){D[k].items=j.islands[k];ok++}if(ok)feedMsg='已載入 news.json（'+j.updated+'）'}catch(e){}}
  if(!ok)feedMsg='此環境無法連外抓 RSS，顯示靜態快照（日期標於每則）。下載 index.html 在一般網站或本機開啟即可自動抓取。';
  busy=false;labels();if(sel>=0)draw(sel);autoTr()}
+// ── 角色扮演：身分、可操控角色、島民對話（離線腳本）、任務與成就 ──
+const ROLES=[
+ {id:'rep',n:'記者',e:'📝',spr:'6b',fav:[1],call:'記者大人',verb:'我來追這條',react:'好，這條值得追，我先記下線索。',tag:['實習記者','跑線記者','資深記者','特派員','金牌記者'],intro:'跑第一線，最愛台灣焦點。'},
+ {id:'edi',n:'編輯',e:'🗞️',spr:'3p',fav:[0],call:'編輯大人',verb:'這條我來下標',react:'標題先擬好了，版面幫你留著。',tag:['助理編輯','文字編輯','資深編輯','副總編輯','總編輯'],intro:'把關版面，新聞廣場是主場。'},
+ {id:'pho',n:'攝影師',e:'📷',spr:'5b',fav:[5,6],call:'攝影大哥',verb:'我去拍畫面',react:'收到，我扛著相機出發！',tag:['攝影助理','隨隊攝影','資深攝影','攝影組長','金鏡獎得主'],intro:'追著畫面跑，體育與文化最上相。'},
+ {id:'ana',n:'分析師',e:'📊',spr:'2b',fav:[2],call:'分析師',verb:'我來看數據',react:'數字我來核對，晚點給你結論。',tag:['研究助理','資深研究員','首席分析師','策略長','市場先知'],intro:'盯盤算數字，財經島最拿手。'},
+ {id:'tec',n:'科技特派',e:'🔌',spr:'4p',fav:[4],call:'特派員',verb:'我研究一下',react:'有意思，我拆開來研究看看。',tag:['科技見習','產業觀察員','資深特派','技術長','未來預言家'],intro:'追科技與 AI，電路島是你家。'}
+];
+const LV=[0,60,150,300,500],RPK='lp-rp';
+const RP0=()=>({role:null,talks:0,visits:[],fav:0,bonus:0,done:[],day:'',lv:null,dq:{talk:0,read:0,visit:[],claimed:[]}});
+let RP=RP0();try{Object.assign(RP,JSON.parse(localStorage.getItem(RPK)||'{}'))}catch(e){}
+const rpSave=()=>{try{localStorage.setItem(RPK,JSON.stringify(RP))}catch(e){}};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function rpDay(){if(RP.day!==today()){RP.day=today();RP.dq={talk:0,read:0,visit:[],claimed:[]};rpSave()}}
+let prevRead=new Set(Object.keys(read));
+const roleOf=()=>ROLES.find(r=>r.id===RP.role);
+const rpXP=()=>Object.keys(read).length*10+RP.talks*5+RP.visits.length*20+RP.fav*5+RP.bonus;
+const rpLv=x=>{let l=0;LV.forEach((m,i)=>{if(x>=m)l=i});return l};
+let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>{t.style.display='none'},2800)}
+const QS=[{id:'read',t:'讀 3 則新聞',n:3,v:()=>RP.dq.read},{id:'talk',t:'與 3 位島民對話',n:3,v:()=>RP.dq.talk},{id:'visit',t:'拜訪 3 座島',n:3,v:()=>RP.dq.visit.length}];
+const ACH=[['first','💬 初次交談',()=>RP.talks>=1],['read10','📚 累計已讀 10 則',()=>Object.keys(read).length>=10],['read30','🏅 累計已讀 30 則',()=>Object.keys(read).length>=30],['talk10','🗣️ 與島民交談 10 次',()=>RP.talks>=10],['tour','🧭 走遍 7 座島',()=>RP.visits.length>=7],['daily','🌟 一天完成全部每日任務',()=>QS.every(q=>RP.dq.claimed.includes(q.id))],['lv3','🎖️ 升到 Lv3',()=>rpLv(rpXP())>=2]];
+function rpCheck(){rpDay();
+ QS.forEach(q=>{if(q.v()>=q.n&&!RP.dq.claimed.includes(q.id)){RP.dq.claimed.push(q.id);RP.bonus+=30;toast('✅ 每日任務完成：'+q.t+'　+30 XP')}});
+ ACH.forEach(a=>{if(!RP.done.includes(a[0])&&a[2]()){RP.done.push(a[0]);toast('🏆 解鎖成就：'+a[1])}});
+ const lv=rpLv(rpXP()),r=roleOf();if(RP.lv!=null&&lv>RP.lv&&r)toast('⬆️ 升級！Lv'+(lv+1)+'「'+r.tag[lv]+'」');RP.lv=lv;
+ rpSave();rpHud();if(cs===-3)drawRP(true)}
+function rpSync(){rpDay();const cur=new Set(Object.keys(read));let add=0;const r=roleOf();
+ cur.forEach(k=>{if(!prevRead.has(k)){add++;RP.dq.read++;const m=/^(\d+):/.exec(k);if(m&&r&&r.fav.includes(+m[1]))RP.fav++}});
+ prevRead=cur;if(add)toast('📖 已讀 +10 XP');rpCheck()}
+function rpGo(i){rpDay();if(!RP.dq.visit.includes(i))RP.dq.visit.push(i);if(!RP.visits.includes(i))RP.visits.push(i);placePlayer(i);rpCheck()}
+// 可操控角色
+let PL=null,near=null;const PK={u:0,d:0,l:0,r:0},pv=new THREE.Vector3();
+function makePlayer(){const r=roleOf();if(!r)return;
+ if(PL&&PL.g)PL.g.remove(PL.sp,PL.sh,PL.ring);
+ const t=mk(r.spr);t.repeat.set(1/9,1/3);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,alphaTest:.3}));sp.scale.set(.62/K,.62/K,1);sp.center.set(.5,.14);
+ const sh=new THREE.Mesh(new THREE.CircleGeometry(.25,14),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.2}));sh.rotation.x=-Math.PI/2;sh.scale.setScalar(.5/K);
+ const ring=new THREE.Mesh(new THREE.RingGeometry(.9,1.2,24),new THREE.MeshBasicMaterial({color:0xe8833a,transparent:true,opacity:.9,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.scale.setScalar(.2/K);
+ let bub=PL?PL.bub:null;if(!bub){bub=document.createElement('div');bub.className='bub lordb';document.body.appendChild(bub)}
+ bub.textContent=r.e+' '+r.n;
+ PL={sp:sp,sh:sh,ring:ring,t:t,bub:bub,isl:PL?PL.isl:0,x:0,z:0,f:0,row:1,moving:false,g:null}}
+function pPos(){PL.sp.position.set(PL.x,.2,PL.z);PL.sh.position.set(PL.x,.18,PL.z);PL.ring.position.set(PL.x,.187,PL.z)}
+function placePlayer(i){if(!PL)return;if(PL.g&&PL.isl===i)return;if(PL.g)PL.g.remove(PL.sp,PL.sh,PL.ring);const g=islands[i].g;PL.isl=i;PL.sp.userData.i=i;PL.ring.userData.i=i;const q=wkNear(i,0,1.1);PL.x=q[0];PL.z=q[1];g.add(PL.sp,PL.sh,PL.ring);PL.g=g;pPos()}
+let lastT=0;
+function rpTick(t){requestAnimationFrame(rpTick);const dt=Math.min(.05,Math.max(0,(t-lastT)/1000||0));lastT=t;if(!PL)return;
+ const f=PK.u-PK.d,r=PK.r-PK.l;PL.moving=false;
+ if((f||r)&&!DLG.open){if(sel<0&&cs===-1)go(PL.isl);
+  let dx=-Math.sin(th)*f+Math.cos(th)*r,dz=-Math.cos(th)*f-Math.sin(th)*r;const l=Math.hypot(dx,dz)||1;dx=dx/l*1.1*dt;dz=dz/l*1.1*dt;
+  const nx=PL.x+dx,nz=PL.z+dz;
+  if(!wkBlocked(PL.isl,nx,nz)){PL.x=nx;PL.z=nz;PL.moving=true}else if(!wkBlocked(PL.isl,nx,PL.z)){PL.x=nx;PL.moving=true}else if(!wkBlocked(PL.isl,PL.x,nz)){PL.z=nz;PL.moving=true}
+  PL.row=r<0?0:r>0?2:1}
+ PL.f=(PL.f+(PL.moving?9*dt:0))%9;PL.t.offset.set((PL.moving?Math.floor(PL.f):0)/9,(2-PL.row)/3);pPos();
+ near=null;let bd=.55;folks.forEach(q=>{if(q.isl!==PL.isl)return;const d=Math.hypot(q.sp.position.x-PL.x,q.sp.position.z-PL.z);if(d<bd){bd=d;near=q}});
+ if(DLG.open&&DLG.npc){DLG.npc.wait=Math.max(DLG.npc.wait,1);DLG.npc.moving=false}
+ const tb=document.getElementById('talk');if(near&&!DLG.open){tb.style.display='block';tb.textContent='💬 與 '+npcName(near)+' 對話（E）'}else tb.style.display='none';
+ const g=islands[PL.isl].g;pv.set(g.position.x+PL.sp.position.x*K,g.position.y+PL.sp.position.y*K+PL.sp.scale.y*K*.85,g.position.z+PL.sp.position.z*K);pv.project(cam);
+ const on=pv.z<1&&Math.abs(pv.x)<1.1&&Math.abs(pv.y)<1.1;PL.bub.style.display=on?'block':'none';if(on){PL.bub.style.left=(pv.x*.5+.5)*innerWidth+'px';PL.bub.style.top=(-pv.y*.5+.5)*innerHeight+'px'}}
+// 島民對話（依新聞標題套用腳本）
+const NM=['阿福','小茉','老周','雅婷','阿凱','美玲','大雄','小安','阿嬤','阿勇','小薰','老李'];
+const npcName=f=>f.lord?LORD[f.isl][0]:'島民'+NM[(f.isl*3+f.n)%NM.length];
+const clip=(x,n)=>x.length>n?x.slice(0,n-1)+'…':x;
+const DLG={open:false,npc:null},talkAt={};
+const TPL=[(r,t,s)=>'欸，'+r.call+'！我剛看到「'+t+'」，你怎麼看？',(r,t,s)=>s+'報導：「'+t+'」。這事你有聽說嗎？',(r,t,s)=>'今天島上都在聊「'+t+'」，'+r.call+'要不要寫進版面？',(r,t,s,it)=>'聽說'+(it.d?it.d+' ':'')+'有一則：「'+t+'」，真的假的？'];
+function dlgClose(){DLG.open=false;DLG.npc=null;document.getElementById('dlg').style.display='none'}
+function talkOpen(f){const key=f.isl+':'+f.n,now=Date.now();if(!(talkAt[key]>now-30000)){talkAt[key]=now;rpDay();RP.talks++;RP.dq.talk++;rpCheck()}dlgSay(f,0,'ask')}
+function dlgAct(f,k){const it=D[f.isl].items[k];if(!it)return;const key=f.isl+':'+k;if(!read[key]){read[key]=true;save()}
+ try{window.open(safeU(it.u)||GN(it.q),'_blank','noopener')}catch(e){}dlgSay(f,k,'done')}
+function dlgSay(f,k,stage){const r=roleOf(),o=D[f.isl],it=o.items[k],box=document.getElementById('dlg');if(!r)return;
+ box.innerHTML='';box.style.display='block';DLG.open=true;DLG.npc=f;
+ box.append(mkEl('b',null,(f.lord?'👑 ':'🙂 ')+npcName(f)));
+ let line='',ch=[];const nx=()=>dlgSay(f,(k+1)%Math.max(1,o.items.length),'ask');
+ if(!it){line='今天還沒有新消息，等一下再來聊聊吧。';ch=[['道別',dlgClose]]}
+ else{const t=clip(it.zh||it.t,30),s=it.s||'新聞';
+  if(stage==='ask'){line=f.lord?LORD[f.isl][1]+' '+r.call+'，今天的推薦是「'+t+'」。':TPL[(k+f.n+f.isl)%TPL.length](r,t,s,it);
+   ch=[[r.verb,()=>dlgAct(f,k)],['聽聽摘要',()=>dlgSay(f,k,'sum')],['下一則',nx],['道別',dlgClose]]}
+  else if(stage==='sum'){line=clip(it.bz||it.b||'來源：'+s+(it.d?'・'+it.d:'')+'。細節要看原文才清楚。',120);ch=[[r.verb,()=>dlgAct(f,k)],['換一則',nx],['道別',dlgClose]]}
+  else{line=r.react+'（已標為已讀）';ch=[['再聊一則',nx],['道別',dlgClose]]}}
+ box.append(mkEl('div','dtx',line));const row=mkEl('div','row');ch.forEach(c=>{const b=mkEl('button','tb',c[0]);b.onclick=c[1];row.append(b)});box.append(row)}
+// 介面
+function rpHud(){const h=document.getElementById('hud'),r=roleOf();if(!r){h.style.display='none';return}const x=rpXP(),lv=rpLv(x),lo=LV[lv],hi=LV[lv+1];
+ h.style.display='block';h.firstChild.textContent=r.e+' '+r.n+'・Lv'+(lv+1)+' '+r.tag[lv]+'・XP '+x;h.lastChild.firstChild.style.width=(hi?Math.min(100,(x-lo)/(hi-lo)*100):100)+'%'}
+function openRP(){cs=-3;sel=-1;if(window._room)_room.presence({isl:-1});tgt.set(0,0,0);tR=95*fit;markNav();drawCh(false)}
+function drawRP(keep){const st=panel.scrollTop,r=roleOf();if(!r){showRole();return}const x=rpXP(),lv=rpLv(x),lo=LV[lv],hi=LV[lv+1];
+ head(r.e+' '+r.n+'・Lv'+(lv+1),r.tag[lv]+'　XP '+x+(hi?' / '+hi:'（已滿級）'));
+ const bar=mkEl('div','xpb'),fill=mkEl('div','xpi');fill.style.width=(hi?Math.min(100,(x-lo)/(hi-lo)*100):100)+'%';bar.append(fill);panel.append(bar);
+ panel.append(mkEl('p',null,r.intro+'偏好版面：'+r.fav.map(i=>D[i].e+D[i].n).join('、')+'（讀這些版面的新聞額外 +5 XP）。'));
+ panel.append(mkEl('p',null,'操作：電腦用 WASD／方向鍵走動，靠近島民按 E 對話；手機用左下方向鍵。角色只能走草地。'));
+ panel.append(mkEl('b',null,'每日任務'));QS.forEach(q=>{const d=RP.dq.claimed.includes(q.id);panel.append(mkEl('div','bl',(d?'✅ ':'⬜ ')+q.t+'（'+Math.min(q.v(),q.n)+'/'+q.n+'）'+(d?' +30 XP':'')))});
+ panel.append(mkEl('br'),mkEl('b',null,'成就'));ACH.forEach(a=>panel.append(mkEl('div','bl',(RP.done.includes(a[0])?'🏆 ':'🔒 ')+a[1])));
+ const row=mkEl('div','row'),ch=mkEl('button','tb','更換角色'),rs=mkEl('button','tb','重設任務與成就');ch.onclick=showRole;
+ rs.onclick=()=>{if(rs.dataset.s!=='1'){rs.dataset.s='1';rs.textContent='再按一次確認重設';return}const ro=RP.role;RP=RP0();RP.role=ro;rpDay();rpSave();rpCheck();drawRP(true)};
+ row.append(ch,rs);panel.append(row,mkEl('p',null,'已讀紀錄不會被清除，所以 XP 仍包含已讀新聞。'));panel.classList.add('open');panel.scrollTop=keep?st:0}
+function showRole(){let o=document.getElementById('role');if(o)o.remove();o=mkEl('div');o.id='role';
+ const c=mkEl('div','rc');c.append(mkEl('h2',null,'🎭 選擇你的角色身分'),mkEl('p',null,'不同身分有偏好版面，讀對版面的新聞可額外加經驗值。'));
+ ROLES.forEach(r=>{const b=mkEl('button','rb');b.append(mkEl('b',null,r.e+' '+r.n),mkEl('small',null,r.intro));b.onclick=()=>{RP.role=r.id;rpSave();makePlayer();placePlayer(sel>=0?sel:(PL?PL.isl:0));o.remove();toast('歡迎，'+r.n+'！用 WASD／方向鍵在島上走走');rpCheck()};c.append(b)});
+ if(roleOf()){const x=mkEl('button','tb','取消');x.onclick=()=>o.remove();c.append(x)}
+ o.append(c);document.body.appendChild(o)}
+(function rpBuild(){const h=mkEl('div');h.id='hud';h.style.display='none';h.append(mkEl('span'));const bar=mkEl('div','xpb');bar.append(mkEl('div','xpi'));h.append(bar);h.onclick=openRP;document.body.appendChild(h);
+ const t=mkEl('div');t.id='toast';document.body.appendChild(t);const d=mkEl('div');d.id='dlg';document.body.appendChild(d);
+ const tk=mkEl('button',null,'💬');tk.id='talk';tk.onclick=()=>{if(near&&!DLG.open)talkOpen(near)};document.body.appendChild(tk);
+ const dp=mkEl('div','dp');dp.id='dpad';[['','',0],['▲','u',1],['','',0],['◀','l',1],['💬','t',1],['▶','r',1],['','',0],['▼','d',1],['','',0]].forEach(a=>{if(!a[2]){dp.append(mkEl('span'));return}const b=mkEl('button',null,a[0]);
+  if(a[1]==='t')b.onclick=()=>{if(near&&!DLG.open)talkOpen(near)};else{const on=e=>{e.preventDefault();PK[a[1]]=1},off=()=>{PK[a[1]]=0};b.addEventListener('pointerdown',on);['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,off))}dp.append(b)});document.body.appendChild(dp);
+ document.getElementById('rl').onclick=()=>{if(roleOf())openRP();else showRole()};document.getElementById('dp').onclick=()=>{dp.style.display=dp.style.display==='none'?'':'none'};
+ const km={arrowup:'u',w:'u',arrowdown:'d',s:'d',arrowleft:'l',a:'l',arrowright:'r',d:'r'};
+ addEventListener('keydown',e=>{const tg=e.target&&e.target.tagName;if(tg==='INPUT'||tg==='TEXTAREA'||e.ctrlKey||e.metaKey||e.altKey)return;const k=(e.key||'').toLowerCase();
+  if(km[k]&&PL){PK[km[k]]=1;e.preventDefault()}else if((k==='e'||(k==='enter'&&tg!=='BUTTON'))&&PL&&near&&!DLG.open){e.preventDefault();talkOpen(near)}else if(k==='escape')dlgClose()});
+ addEventListener('keyup',e=>{const k=(e.key||'').toLowerCase();if(km[k])PK[km[k]]=0});addEventListener('blur',()=>{PK.u=PK.d=PK.l=PK.r=0})})();
+rpDay();if(RP.role){makePlayer();placePlayer(0)}else showRole();rpHud();requestAnimationFrame(rpTick);
 try{const j=JSON.parse(localStorage.getItem('lp-channels')||'[]');if(Array.isArray(j))mergeCh(j)}catch(e){}
 navCustom();
 fetch('channels.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;const l=Array.isArray(j)?j:j.channels;if(Array.isArray(l)){mergeCh(l);refreshCustom()}}).catch(()=>{});
